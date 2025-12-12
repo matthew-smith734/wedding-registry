@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Registry</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1>Wedding Registry</h1>
+            <div class="nav-right">
+                <span id="username"></span>
+                <button onclick="logout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="registry-info">
+            <p>Welcome! Here are the items available for you to view.</p>
+        </div>
+
+        <div id="itemsList"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/user');
+                if (!response.ok) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                currentUser = await response.json();
+                document.getElementById('username').textContent = `${currentUser.username} (${currentUser.userType})`;
+                loadItems();
+            } catch (error) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+
+        async function loadItems() {
+            try {
+                const response = await fetch('/api/items');
+                const items = await response.json();
+                
+                const itemsList = document.getElementById('itemsList');
+                
+                if (items.length === 0) {
+                    itemsList.innerHTML = '<p class="no-items">No items available in the registry yet.</p>';
+                    return;
+                }
+                
+                itemsList.innerHTML = items.map(item => `
+                    <div class="item-card">
+                        ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}">` : ''}
+                        <div class="item-content">
+                            <h3>${item.name}</h3>
+                            ${item.description ? `<p class="item-description">${item.description}</p>` : ''}
+                            ${item.shop ? `<p class="item-shop">Available at: ${item.shop}</p>` : ''}
+                            <a href="${item.url}" target="_blank" class="btn btn-primary">View Item</a>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading items:', error);
+                document.getElementById('itemsList').innerHTML = '<p class="error">Error loading items.</p>';
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>

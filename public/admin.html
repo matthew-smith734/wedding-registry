@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Registry - Admin</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1>Wedding Registry - Admin</h1>
+            <div class="nav-right">
+                <span id="username"></span>
+                <button onclick="logout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="admin-panel">
+            <h2>Add New Item</h2>
+            <form id="addItemForm">
+                <div class="form-group">
+                    <label for="name">Item Name *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="url">URL *</label>
+                    <input type="url" id="url" name="url" required>
+                </div>
+                <div class="form-group">
+                    <label for="shop">Shop</label>
+                    <input type="text" id="shop" name="shop">
+                </div>
+                <div class="form-group">
+                    <label for="image_url">Image URL</label>
+                    <input type="url" id="image_url" name="image_url">
+                </div>
+                <div class="form-group">
+                    <label>Tags (select who can see this item)</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="tags" value="all"> All Users</label>
+                        <label><input type="checkbox" name="tags" value="family"> Family</label>
+                        <label><input type="checkbox" name="tags" value="friends"> Friends</label>
+                        <label><input type="checkbox" name="tags" value="coworkers"> Coworkers</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Item</button>
+                <div id="message" class="message"></div>
+            </form>
+        </div>
+
+        <div class="items-section">
+            <h2>All Registry Items</h2>
+            <div id="itemsList"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/user');
+                if (!response.ok) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                currentUser = await response.json();
+                if (currentUser.userType !== 'admin') {
+                    window.location.href = '/registry.html';
+                    return;
+                }
+                document.getElementById('username').textContent = currentUser.username;
+                loadItems();
+            } catch (error) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+
+        document.getElementById('addItemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const tags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value);
+            
+            const item = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                url: formData.get('url'),
+                shop: formData.get('shop'),
+                image_url: formData.get('image_url'),
+                tags: tags
+            };
+            
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch('/api/items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(item)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.textContent = 'Item added successfully!';
+                    messageDiv.className = 'message success';
+                    e.target.reset();
+                    loadItems();
+                } else {
+                    messageDiv.textContent = data.error || 'Failed to add item';
+                    messageDiv.className = 'message error';
+                }
+            } catch (error) {
+                messageDiv.textContent = 'An error occurred';
+                messageDiv.className = 'message error';
+            }
+        });
+
+        async function loadItems() {
+            try {
+                const response = await fetch('/api/items');
+                const items = await response.json();
+                
+                const itemsList = document.getElementById('itemsList');
+                
+                if (items.length === 0) {
+                    itemsList.innerHTML = '<p class="no-items">No items in registry yet.</p>';
+                    return;
+                }
+                
+                itemsList.innerHTML = items.map(item => `
+                    <div class="item-card">
+                        ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}">` : ''}
+                        <div class="item-content">
+                            <h3>${item.name}</h3>
+                            ${item.description ? `<p class="item-description">${item.description}</p>` : ''}
+                            ${item.shop ? `<p class="item-shop">Shop: ${item.shop}</p>` : ''}
+                            <div class="item-tags">
+                                ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                            <div class="item-actions">
+                                <a href="${item.url}" target="_blank" class="btn btn-secondary">View Item</a>
+                                <button onclick="deleteItem(${item.id})" class="btn btn-danger">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading items:', error);
+            }
+        }
+
+        async function deleteItem(id) {
+            if (!confirm('Are you sure you want to delete this item?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/items/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadItems();
+                } else {
+                    alert('Failed to delete item');
+                }
+            } catch (error) {
+                alert('An error occurred');
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>
