@@ -111,13 +111,24 @@ wedding-registry/
 
 ## Security Notes
 
-**Important: Before deploying to production:**
+**Important: This is a demonstration application. Before deploying to production:**
+
+### Authentication & Session Security
 - Set the `SESSION_SECRET` environment variable to a strong random value
+- Enable HTTPS and set `cookie: { secure: true, httpOnly: true, sameSite: 'strict' }` in session config
 - Change or remove the default admin password
 - Disable or remove the sample user accounts (family_user, friends_user, coworkers_user)
-- Use HTTPS in production
-- Consider adding rate limiting for login attempts
 - Review and update session configuration for production use
+
+### Additional Security Considerations
+- **Rate Limiting**: Add rate limiting middleware (e.g., express-rate-limit) to protect against brute force attacks on login and API endpoints
+- **CSRF Protection**: Implement CSRF token validation (e.g., csurf middleware) for state-changing operations
+- **Input Validation**: Add comprehensive input validation and sanitization
+- **SQL Injection**: Current implementation uses parameterized queries which provides protection
+- **HTTPS**: Always use HTTPS in production to protect data in transit
+
+### Development vs Production
+This application is designed for demonstration and development purposes. The security alerts about missing rate limiting, clear-text cookies, and CSRF protection are acceptable for local development but must be addressed before any production deployment.
 
 ## License
 
