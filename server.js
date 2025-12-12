@@ -38,14 +38,17 @@ db.exec(`
 `);
 
 // Create default admin user if not exists (password: admin123)
+// WARNING: Change default credentials before deploying to production!
 const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
 if (!adminExists) {
   const hashedPassword = bcrypt.hashSync('admin123', 10);
   db.prepare('INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)').run('admin', hashedPassword, 'admin');
   console.log('Default admin user created (username: admin, password: admin123)');
+  console.log('WARNING: Change default credentials before deploying to production!');
 }
 
-// Create sample users if they don't exist
+// Create sample users if they don't exist (for demonstration purposes)
+// WARNING: Disable or change these credentials in production!
 const sampleUsers = [
   { username: 'family_user', password: 'family123', type: 'family' },
   { username: 'friends_user', password: 'friends123', type: 'friends' },
@@ -66,7 +69,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-  secret: 'wedding-registry-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || 'wedding-registry-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
@@ -114,8 +117,12 @@ app.post('/api/login', (req, res) => {
 
 // Logout
 app.post('/api/logout', (req, res) => {
-  req.session.destroy();
-  res.json({ success: true });
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to logout' });
+    }
+    res.json({ success: true });
+  });
 });
 
 // Get current user

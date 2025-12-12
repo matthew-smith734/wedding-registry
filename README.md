@@ -111,10 +111,13 @@ wedding-registry/
 
 ## Security Notes
 
-- Change the session secret in `server.js` for production use
-- Change default passwords before deploying
+**Important: Before deploying to production:**
+- Set the `SESSION_SECRET` environment variable to a strong random value
+- Change or remove the default admin password
+- Disable or remove the sample user accounts (family_user, friends_user, coworkers_user)
 - Use HTTPS in production
 - Consider adding rate limiting for login attempts
+- Review and update session configuration for production use
 
 ## License
 
