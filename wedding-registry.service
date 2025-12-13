@@ -1,0 +1,19 @@
+[Unit]
+Description=Wedding Registry Application
+After=network.target
+
+[Service]
+Type=simple
+User=wedding
+WorkingDirectory=/home/wedding/wedding-registry
+Environment="NODE_ENV=production"
+EnvironmentFile=/home/wedding/wedding-registry/.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wedding-registry
+
+[Install]
+WantedBy=multi-user.target

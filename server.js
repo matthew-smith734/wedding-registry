@@ -6,9 +6,11 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'wedding-registry-secret-key-change-in-production';
+const DB_PATH = process.env.DB_PATH || 'registry.db';
 
 // Initialize database
-const db = new Database('registry.db');
+const db = new Database(DB_PATH);
 
 // Create tables
 db.exec(`
@@ -69,10 +71,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'wedding-registry-secret-key-change-in-production',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+  cookie: { 
+    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 hours default
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    httpOnly: true,
+    sameSite: 'lax'
+  }
 }));
 
 // Authentication middleware
